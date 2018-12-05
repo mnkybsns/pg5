@@ -23,42 +23,52 @@ int main(int argc, char *argv[])
     Ptr<LteHelper> lteHelper = CreateObject<LteHelper>();
     Ptr<PointToPointEpcHelper> epcHelper = CreateObject<PointToPointEpcHelper>();
     lteHelper->SetEpcHelper(epcHelper);
+    
     ConfigStore inputConfig;
     inputConfig.ConfigureDefaults();
-    cmd.Parse(argc, argv);
-    Ptr<Node> pgw = epcHelper->GetPgwNode();
     
+    cmd.Parse(argc, argv);
+    
+    Ptr<Node> pgw = epcHelper->GetPgwNode();
+
     NodeContainer remoteHostContainer;
     remoteHostContainer.Create(1);
+    
     Ptr<Node> remoteHost = remoteHostContainer.Get(0);
     InternetStackHelper internet;
     internet.Install(remoteHostContainer);
+    
     
     PointToPointHelper p2ph;
     p2ph.SetDeviceAttribute("DataRate", DataRateValue(DataRate("100Gb/s")));
     p2ph.SetDeviceAttribute("Mtu", UintegerValue(1500));
     p2ph.SetChannelAttribute("Delay", TimeValue(Seconds(0.010)));
+    
     NetDeviceContainer internetDevices = p2ph.Install(pgw, remoteHost);
     Ipv4AddressHelper ipv4h;
     ipv4h.SetBase("1.0.0.0", "255.0.0.0");
-    Ipv4InterfaceContainer internetIpIfaces = ipv4h.Assign(internetDevices);
     
+    Ipv4InterfaceContainer internetIpIfaces = ipv4h.Assign(internetDevices);
+
     Ipv4Address remoteHostAddr = internetIpIfaces.GetAddress(1);
     Ipv4StaticRoutingHelper ipv4RoutingHelper;
+    
     Ptr<Ipv4StaticRouting> remoteHostStaticRouting =
         ipv4RoutingHelper.GetStaticRouting(remoteHost->GetObject<Ipv4>());
     remoteHostStaticRouting->AddNetworkRouteTo(Ipv4Address("7.0.0.0"), Ipv4Mask("255.0.0.0"), 1);
+    
     NodeContainer ueNodes;
     NodeContainer enbNodes;
     enbNodes.Create(numberOfNodes);
     ueNodes.Create(numberOfNodes);
-   
+    
+
     MobileApplicationHelper mobileApplicatonHelper(enbNodes, ueNodes, numberOfNodes);
     mobileApplicatonHelper.SetupMobilityModule(distance);
 
-    
+
     mobileApplicatonHelper.SetupDevices(lteHelper, epcHelper, ipv4RoutingHelper);
-    
+
     uint16_t dlPort = 1234;
     uint16_t ulPort = 2000;
     uint16_t otherPort = 3000;
@@ -71,14 +81,14 @@ int main(int argc, char *argv[])
     clientApps.Start(Seconds(0.01));
     clientApps.Stop(Seconds(8));
     lteHelper->EnableTraces();
-   
+
     p2ph.EnablePcapAll("lena-epc-first");
 
     AsciiTraceHelper ascii;
     p2ph.EnableAsciiAll(ascii.CreateFileStream("cdma.tr"));
     Simulator::Stop(Seconds(10));
     Simulator::Run();
-    
+
     Simulator::Destroy();
     return 0;
 }
